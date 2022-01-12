@@ -13,6 +13,7 @@ mongooses <- as_tibble(read.csv("mongooses.csv"))
 #check out how R views these differently
 basic.mongooses
 mongooses  
+View(mongooses)
 
 str(basic.mongooses)
 str(mongooses)
