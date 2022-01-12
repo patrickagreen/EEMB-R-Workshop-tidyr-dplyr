@@ -11,7 +11,7 @@ basic.mongooses <- read.csv("mongooses.csv")
 mongooses <- as_tibble(read.csv("mongooses.csv"))
 
 #check out how R views these differently
-basic.mongooses
+head(basic.mongooses)
 mongooses  
 View(mongooses)
 
@@ -29,19 +29,29 @@ basic.mongooses[47,]
 #find all data in "n_adults" column
 basic.mongooses[,5] #using indexing
 basic.mongooses$n.adults #using $ operator
+basic.mongooses
+
 #subsetting
 #find all rows where n_adults > 10
 basic.mongooses[basic.mongooses$n.adults>10,]
 #find only the focal groups with n_adults>10 and mean_age>500
 basic.mongooses$focal[basic.mongooses$n.adults>10 & basic.mongooses$mean.age>1500]
+basic.mongooses[basic.mongooses$n.adults>10 & basic.mongooses$mean.age>1500, "focal"]
 
 #how do we do similar stuff in tidyr?
 #piping!
 #finding specific rows and columns using filter and select
 #try finding rows where n_adults > 10
-mongooses%>%filter(n.adults>10) #how is this different from line 33 above?
+mongooses%>%filter(n.adults>10) #how is this different from above?
+
 #find only the focal groups with n_adults>10 and n_males>5
-mongooses%>%filter(n.adults>10, mean.age>1500)%>%select(focal) #WOO THAT IS EASIER than line 35
+#note that sometimes you need to specify the library for a function
+#below, I use dplyr::select() for the select function
+#this apparently happens sometimes with the group_by() function (thanks, Krista!)
+hello <- mongooses%>%filter(n.adults>10, mean.age>1500)%>%dplyr::select(focal) #WOO THAT IS EASIER than line 35
+#note that, different from base R, tidyR always outputs these to a tibble, not a vector
+#use the $ operator to pull out the vector you want (just like you would for any other dataframe)
+hello$focal
 
 #let's compare focal groups to rival groups
 #load the rival group data
@@ -53,6 +63,7 @@ mongooses
 names(rival.mongooses)[5:6] <- c("n.rival.adults", "mean.rival.age")
 
 #how do we combine the datasets?
+#option 1
 #basic R
 merge(mongooses, rival.mongooses, by = c("igi.event", "focal", "rival", "daten"))
 #tidyr
@@ -60,6 +71,7 @@ left_join(mongooses, rival.mongooses, by = c("igi.event", "focal", "rival", "dat
 #make sure you assign this to a new dataframe!
 new.mongooses <- left_join(mongooses, rival.mongooses, by = c("igi.event", "focal", "rival", "daten"))
 
+#option 2
 #a better way to organize data? tidy data
 #as "long" as possible--each observation in its own row
 mongooses$type <- "focal"
@@ -85,14 +97,21 @@ ggplot(data = new.mongooses, aes(x=n.adults, y = mean.age))+
 #we can also make new variables using tidy data
 #what about relative n.adults = focal - rival
 #I think this is not the easiest/best way, but it works for me
-tidy.mongooses%>%group_by(igi.event, daten, focal, rival)%>%summarise(rel.n.adults = n.adults[type=="focal"]-n.adults[type=="rival"])
+tidy.mongooses%>%
+  group_by(igi.event, daten, focal, rival)%>%
+  summarise(rel.n.adults = n.adults[type=="focal"]-n.adults[type=="rival"])
+#note that the above combined tidyR with some basic indexing []
 
 #(we can also do this using untidy data)
-new.mongooses%>%mutate(rel.n.adults = n.adults - n.rival.adults)
+new.mongooses%>%
+  mutate(rel.n.adults = n.adults - n.rival.adults)
 
 #how do we summarise data? 
 #for example, what's the highest mean age value for each focal group?
 #base R
 aggregate(x = new.mongooses$mean.age, by = list(new.mongooses$focal), FUN=max)
 #tidyR
-tidy.mongooses%>%filter(type=="focal")%>%group_by(focal)%>%summarise(oldest.mean.age = max(mean.age))
+tidy.mongooses%>%
+  filter(type=="focal")%>%
+  group_by(focal)%>%
+  summarise(oldest.mean.age = max(mean.age))
